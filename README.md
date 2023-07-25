@@ -1,4 +1,4 @@
-# [Social-IQ 2.0 Challenge @ ICCV 2023] Just Ask Plus: Use Transcripts for VideoQA Too
+# [Social-IQ 2.0 Challenge @ ICCV 2023] Just Ask Plus: Using Transcripts for VideoQA
 
 **This repository is a copy of the [Just Ask](https://github.com/antoyang/just-ask) repository. We provide only the required parts for reproducing our results of the Social-IQ 2.0 Challenge here**
 
