@@ -3,6 +3,8 @@ import os
 import collections
 import pandas as pd
 
+import sys
+sys.path.insert(0, os.getcwd())  # to correct with parent folder
 from global_parameters import ACT_PATH
 
 os.chdir(ACT_PATH)

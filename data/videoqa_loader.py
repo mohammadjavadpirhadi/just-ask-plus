@@ -18,6 +18,7 @@ class VideoQADataset(Dataset):
         ivqa=False,
         max_feats=20,
         mc=0,
+        load_answer_id=True
     ):
         """
         :param csv_path: path to a csv containing columns video_id, question, answer
@@ -29,7 +30,7 @@ class VideoQADataset(Dataset):
         :param ivqa: whether to use iVQA or not
         :param max_feats: maximum frames to sample from a video
         """
-        self.data = pd.read_csv(csv_path)
+        self.data = pd.read_csv(csv_path, keep_default_na=False)
         self.features = features
         self.qmax_words = qmax_words
         self.amax_words = amax_words
@@ -38,11 +39,18 @@ class VideoQADataset(Dataset):
         self.ivqa = ivqa
         self.max_feats = max_feats
         self.mc = mc
+        self.load_answer_id = load_answer_id
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, index):
+        question_id = None
+        if "qid" in self.data:
+            question_id = self.data["qid"].values[index]
+        sample_id = None
+        if "sample_id" in self.data:
+            sample_id = self.data["sample_id"].values[index]
         vid_id = self.data["video_id"].values[index]
         video = self.features[vid_id]
         if len(video) < self.max_feats:
@@ -70,15 +78,17 @@ class VideoQADataset(Dataset):
                     self.data["answer5"].values[index],
                 ]
             )
-            answer_id = torch.zeros(len(self.a2id))
-            for x in answer_txt:
-                if x in self.a2id:
-                    answer_id[self.a2id[x]] = answer_txt[x]
+            if self.load_answer_id:
+                answer_id = torch.zeros(len(self.a2id))
+                for x in answer_txt:
+                    if x in self.a2id:
+                        answer_id[self.a2id[x]] = answer_txt[x]
             answer_txt = ", ".join(
                 [str(x) + "(" + str(answer_txt[x]) + ")" for x in answer_txt]
             )
         elif self.mc:
-            answer_id = int(self.data["answer"][index])
+            if self.load_answer_id:
+                answer_id = int(self.data["answer"][index])
             answer_txt = [self.data["a" + str(i + 1)][index] for i in range(self.mc)]
             answer = tokenize(
                 answer_txt,
@@ -90,9 +100,10 @@ class VideoQADataset(Dataset):
             )
         else:
             answer_txt = self.data["answer"].values[index]
-            answer_id = self.a2id.get(
-                answer_txt, -1
-            )  # put an answer_id -1 if not in top answers, that will be considered wrong during evaluation
+            if self.load_answer_id:
+                answer_id = self.a2id.get(
+                    answer_txt, -1
+                )  # put an answer_id -1 if not in top answers, that will be considered wrong during evaluation
         if not self.mc:
             type = self.data["type"].values[index]
 
@@ -108,17 +119,33 @@ class VideoQADataset(Dataset):
             dtype=torch.long,
         )
 
-        return {
-            "video_id": vid_id,
-            "video": video,
-            "video_len": vid_duration,
-            "question": question_embd,
-            "question_txt": question_txt,
-            "type": type,
-            "answer_id": answer_id,
-            "answer_txt": answer_txt,
-            "answer": answer,
-        }
+        if self.load_answer_id:
+            return {
+                "sample_id": sample_id,
+                "question_id": question_id,
+                "video_id": vid_id,
+                "video": video,
+                "video_len": vid_duration,
+                "question": question_embd,
+                "question_txt": question_txt,
+                "type": type,
+                "answer_id": answer_id,
+                "answer_txt": answer_txt,
+                "answer": answer,
+            }
+        else:
+            return {
+                "sample_id": sample_id,
+                "question_id": question_id,
+                "video_id": vid_id,
+                "video": video,
+                "video_len": vid_duration,
+                "question": question_embd,
+                "question_txt": question_txt,
+                "type": type,
+                "answer_txt": answer_txt,
+                "answer": answer,
+            }
 
 
 def videoqa_collate_fn(batch):
@@ -175,8 +202,8 @@ def get_videoqa_loaders(args, features, a2id, bert_tokenizer):
         train_dataset,
         batch_size=args.batch_size,
         num_workers=args.num_thread_reader,
-        shuffle=True,
-        drop_last=True,
+        shuffle=args.load_answer_id, # Only on training not feature extraction
+        drop_last=args.load_answer_id, # Only on training not feature extraction
         collate_fn=videoqa_collate_fn,
     )
 
@@ -190,6 +217,7 @@ def get_videoqa_loaders(args, features, a2id, bert_tokenizer):
         ivqa=(args.dataset == "ivqa"),
         max_feats=args.max_feats,
         mc=args.mc,
+        load_answer_id=args.load_answer_id,
     )
 
     test_loader = DataLoader(

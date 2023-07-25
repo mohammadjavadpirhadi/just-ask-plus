@@ -24,7 +24,8 @@ def get_args():
             "howto100m",
             "howtovqa",
             "how2qa",
-            "webvidvqa"
+            "webvidvqa",
+            "siq2"
         ],
     )
     parser.add_argument(
@@ -129,6 +130,26 @@ def get_args():
         default=TRANSFORMERS_PATH,
         help="path to transformer models checkpoints",
     )
+    parser.add_argument(
+        "--siq2_questions_features_path",
+        type=str,
+        help="folder where the questions features are stored",
+    )
+    parser.add_argument(
+        "--siq2_attended_questions_features_path",
+        type=str,
+        help="folder where the attended questions features are stored",
+    )
+    parser.add_argument(
+        "--siq2_answers_features_path",
+        type=str,
+        help="folder where the answers features are stored",
+    )
+    parser.add_argument(
+        "--siq2_transcripts_features_path",
+        type=str,
+        help="folder where the transript features are stored",
+    )
 
     # Train
     parser.add_argument("--batch_size", type=int, default=256)
@@ -142,7 +163,31 @@ def get_args():
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--epochs", type=int, default=20)
     parser.add_argument(
-        "--test", type=int, default=0, help="use to evaluate without training"
+        "--use_validation", type=int, default=0, help="use validation set for training too"
+    )
+    parser.add_argument(
+        "--zeroshot_eval", type=int, default=0, help="use to evaluate without training on validation set"
+    )
+    parser.add_argument(
+        "--test", type=int, default=0, help="use to evaluate without training on test set"
+    )
+    parser.add_argument(
+        "--predict", type=int, default=0, help="use to predict the correct answer"
+    )
+    parser.add_argument(
+        "--save_questions_features",
+        action="store_true",
+        help="whether or not save the questions feature",
+    )
+    parser.add_argument(
+        "--save_attended_questions_features",
+        action="store_true",
+        help="whether or not save the attended questions feature",
+    )
+    parser.add_argument(
+        "--save_answers_features",
+        action="store_true",
+        help="whether or not save the answers feature",
     )
     parser.add_argument(
         "--lr", type=float, default=0.00005, help="initial learning rate"
@@ -169,6 +214,7 @@ def get_args():
     )
 
     # Masked Language Modeling and Cross-Modal Matching parameters
+    parser.add_argument("--skip_transcript_prob", type=float, default=0.0)
     parser.add_argument("--mlm_prob", type=float, default=0.15)
     parser.add_argument("--n_negs", type=int, default=1)
     parser.add_argument("--lr_decay", type=float, default=0.9)
@@ -189,9 +235,15 @@ def get_args():
 
     os.environ["TRANSFORMERS_CACHE"] = args.bert_path
     args.save_dir = os.path.join(args.checkpoint_predir, args.checkpoint_dir)
+    args.predict_path = os.path.join(args.save_dir, "predict.json")
+    args.save_questions_features_path = os.path.join(args.save_dir, "questions_features.pth")
+    args.save_attended_questions_features_path = os.path.join(args.save_dir, "attended_questions_features.pth")
+    args.save_answers_features_path = os.path.join(args.save_dir, "answers_features.pth")
+    args.load_answer_id = not(args.predict or args.save_questions_features or 
+                              args.save_answers_features or args.save_attended_questions_features)
 
     # multiple-choice arg
-    args.mc = 4 if args.dataset == "how2qa" else 0
+    args.mc = 4 if args.dataset in ["how2qa", "siq2"] else 0
 
     # feature dimension
     args.feature_dim = 1024  # S3D

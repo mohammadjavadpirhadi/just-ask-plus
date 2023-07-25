@@ -6,6 +6,10 @@ import torch.nn.functional as F
 import torch.nn as nn
 import numpy as np
 import re
+
+import sys
+import os
+sys.path.insert(0, os.getcwd())  # to correct with parent folder
 from global_parameters import S3D_DICT_PATH
 
 

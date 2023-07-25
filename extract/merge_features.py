@@ -4,6 +4,9 @@ import os
 import torch
 from tqdm import tqdm
 import pandas as pd
+
+import sys
+sys.path.insert(0, os.getcwd())  # to correct with parent folder
 from global_parameters import MSVD_PATH, HOW2QA_PATH
 
 parser = argparse.ArgumentParser(description="Feature merger")
@@ -17,7 +20,7 @@ parser.add_argument(
     type=str,
     help="dataset",
     required=True,
-    choices=["ivqa", "msrvtt", "msvd", "activitynet"],
+    choices=["ivqa", "msrvtt", "msvd", "activitynet", "siq2"],
 )
 parser.add_argument(
     "--pad",
@@ -44,6 +47,9 @@ elif args.dataset == "msvd":
 
 elif args.dataset in ["ivqa", "activitynet"]:
     mapping = {x: x[:11] for x in files}
+
+elif args.dataset == "siq2":
+    mapping = {x: x.rsplit(".", maxsplit=1)[0] for x in files}
 
 else:
     raise NotImplementedError

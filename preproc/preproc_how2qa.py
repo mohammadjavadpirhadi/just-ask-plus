@@ -3,6 +3,9 @@ import pandas as pd
 import os
 import numpy as np
 import torch
+
+import sys
+sys.path.insert(0, os.getcwd())  # to correct with parent folder
 from global_parameters import HOW2QA_PATH, HOWTO_FEATURES_PATH
 
 train_csv = pd.read_csv(os.path.join(HOW2QA_PATH, "how2QA_train_release.csv"))

@@ -3,6 +3,8 @@ import pandas as pd
 import json
 import os
 
+import sys
+sys.path.insert(0, os.getcwd())  # to correct with parent folder
 from global_parameters import (
     IVQA_PATH,
     MSRVTT_PATH,

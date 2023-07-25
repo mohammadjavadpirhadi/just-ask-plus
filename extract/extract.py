@@ -4,11 +4,15 @@ import numpy as np
 import torch.nn.functional as F
 from tqdm import tqdm
 import argparse
-from extract.video_loader import VideoLoader
+from video_loader import VideoLoader
 from torch.utils.data import DataLoader
-from extract.s3dg import S3D
-from extract.preprocessing import Preprocessing
-from extract.random_sequence_shuffler import RandomSequenceSampler
+from s3dg import S3D
+from preprocessing import Preprocessing
+from random_sequence_shuffler import RandomSequenceSampler
+
+import sys
+import os
+sys.path.insert(0, os.getcwd())  # to correct with parent folder
 from global_parameters import S3D_PATH
 
 parser = argparse.ArgumentParser(description="Easy video feature extractor")

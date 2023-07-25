@@ -1,9 +1,108 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import json
 import logging
 import collections
 from util import compute_aggreeings, AverageMeter, get_mask, mask_tokens
+
+
+def extract_features(model, loaders, args):
+    if not args.mc:
+        raise ValueError("args.mc must be greater than zero!")
+    model.eval()
+
+    if args.save_questions_features:
+        questions_features = {}
+    if args.save_attended_questions_features:
+        attended_questions_features = {}
+    if args.save_answers_features:
+        answers_features = {}
+    with torch.no_grad():
+        for loader_name, loader in loaders.items():
+            if args.save_questions_features:
+                questions_features[loader_name] = {}
+            if args.save_attended_questions_features:
+                attended_questions_features[loader_name] = {}
+            if args.save_answers_features:
+                answers_features[loader_name] = {}
+            for i, batch in enumerate(loader):
+                sample_id, answer, video, question = (
+                    batch["sample_id"].tolist(),
+                    batch["answer"],
+                    batch["video"].cuda(),
+                    batch["question"].cuda(),
+                )
+                video_len = batch["video_len"]
+                question_mask = (question > 0).float()
+                video_mask = get_mask(video_len, video.size(1)).cuda()
+
+                if args.mc:
+                    fusion_proj, answer_proj = model(
+                        video,
+                        question,
+                        text_mask=question_mask,
+                        video_mask=video_mask,
+                        answer=answer.cuda(),
+                    )
+                    if args.save_questions_features:
+                        questions_features[loader_name].update(zip(sample_id, model.module.bert(question)[:, 0, :].cpu()))
+                    if args.save_attended_questions_features:
+                        attended_questions_features[loader_name].update(zip(sample_id, fusion_proj.cpu()))
+                    if args.save_answers_features:
+                        answers_features[loader_name].update(zip(sample_id, answer_proj.cpu()))
+        
+        if args.save_questions_features:
+            torch.save(questions_features, args.save_questions_features_path)
+            logging.info(f"Questions features saved in {args.save_questions_features_path}")
+        if args.save_attended_questions_features:
+            torch.save(attended_questions_features, args.save_attended_questions_features_path)
+            logging.info(f"Attended questions features saved in {args.save_attended_questions_features_path}")
+        if args.save_answers_features:
+            torch.save(answers_features, args.save_answers_features_path)
+            logging.info(f"Answers features saved in {args.save_answers_features_path}")
+
+
+def predict(model, test_loader, a2v, args):
+    model.eval()
+    predicted = {}
+
+    with torch.no_grad():
+        if not args.mc:
+            model.module._compute_answer_embedding(a2v)
+        for i, batch in enumerate(test_loader):
+            sample_id, answer, video, question = (
+                batch["sample_id"].tolist(),
+                batch["answer"],
+                batch["video"].cuda(),
+                batch["question"].cuda(),
+            )
+            video_len = batch["video_len"]
+            question_mask = (question > 0).float()
+            video_mask = get_mask(video_len, video.size(1)).cuda()
+
+            if not args.mc:
+                predicts = model(
+                    video,
+                    question,
+                    text_mask=question_mask,
+                    video_mask=video_mask,
+                )
+            else:
+                fusion_proj, answer_proj = model(
+                    video,
+                    question,
+                    text_mask=question_mask,
+                    video_mask=video_mask,
+                    answer=answer.cuda(),
+                )
+                fusion_proj = fusion_proj.unsqueeze(2)
+                predicts = torch.bmm(answer_proj, fusion_proj).squeeze()
+            predicted.update(zip(sample_id, torch.max(predicts, dim=1).indices.cpu().tolist()))
+
+    with open(args.predict_path, 'w') as predict_file:
+        json.dump({'predictions': predicted}, predict_file)
+    logging.info(f"Prediction saved in {args.predict_path}")
 
 
 def eval(model, val_loader, a2v, args, test=False):

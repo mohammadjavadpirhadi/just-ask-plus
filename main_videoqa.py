@@ -10,7 +10,7 @@ from args import get_args
 from model.multimodal_transformer import MMT_VideoQA
 from loss import LogSoftmax
 from util import compute_a2v
-from train.train_videoqa import train, eval
+from train.train_videoqa import train, eval, predict, extract_features
 from data.videoqa_loader import get_videoqa_loaders
 
 # args, logging
@@ -97,7 +97,7 @@ criterion.cuda()
 
 # Training
 
-if not args.test:
+if not args.zeroshot_eval and not args.test and not args.predict and args.load_answer_id:
     scheduler = get_cosine_schedule_with_warmup(
         optimizer, 0, len(train_loader) * args.epochs
     )
@@ -124,5 +124,15 @@ if not args.test:
         )
     )
 
-# Evaluate on test set
-eval(model, test_loader, a2v, args, test=True)
+if args.zeroshot_eval:
+    eval(model, val_loader, a2v, args, test=False)
+
+if args.test:
+    # Evaluate on test set
+    eval(model, test_loader, a2v, args, test=True)
+
+if args.predict:
+    predict(model, test_loader, a2v, args)
+
+if args.save_questions_features or args.save_answers_features or args.save_attended_questions_features:
+    extract_features(model, {'train': train_loader, 'val': val_loader, 'test': test_loader}, args)

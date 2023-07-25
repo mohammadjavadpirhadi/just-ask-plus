@@ -17,7 +17,8 @@ dataset2folder = {
     "howto100m": "HowTo100M",
     "howtovqa": "HowToVQA69M",
     "how2qa": "How2QA",
-    "webvidvqa": "WebVidVQA"
+    "webvidvqa": "WebVidVQA",
+    "siq2": "Social-IQ-2.0"
 }
 
 # Datasets
@@ -45,6 +46,9 @@ HOW2QA_PATH = os.path.join(
 WEBVID_PATH = os.path.join(
     DEFAULT_DATASET_DIR, dataset2folder["webvidvqa"]
 )  # Path where WebVid is downloaded
+SIQ2_PATH = os.path.join(
+    DEFAULT_DATASET_DIR, dataset2folder["siq2"]
+)  # Path where Social-IQ-2.0" is downloaded
 
 # Models
 S3D_PATH = os.path.join(

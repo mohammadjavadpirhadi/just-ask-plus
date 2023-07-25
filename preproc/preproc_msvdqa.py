@@ -3,6 +3,8 @@ import os
 import pandas as pd
 import collections
 
+import sys
+sys.path.insert(0, os.getcwd())  # to correct with parent folder
 from global_parameters import MSVD_PATH
 
 os.chdir(MSVD_PATH)
