@@ -125,4 +125,23 @@ python just-ask/main_siq2.py \
 --siq2_transcripts_features_path=<path_to_transcript_sentences_features.pth>
 ```
 
-These commands save a file named ```predict.json``` in ```<checkpoint_dir>``` which maps each samp
+These commands save a file named ```predict.json``` in ```<checkpoint_dir>``` which maps each sample id (added in the preprocessing step) to the predicted answer.
+
+## Generate qa_test_{focus}
+
+To generate the submission file for zero-shot focus run:
+
+```
+python postproc/generate_qa_test_zero.py \
+--checkpoint_dir=<checkpoint_dir> \
+```
+
+and for fusion and reasoning focus run:
+
+```
+python postproc/generate_qa_test_fusion.py \
+--checkpoint_dir=<checkpoint_dir> \
+```
+
+The ```<checkpoint_dir>``` must contain ```predict.json```.
+
